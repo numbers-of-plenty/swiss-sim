@@ -276,11 +276,15 @@ def output_concatenated_tsv(round_outputs: List[List[List[str]]]) -> None:
     print("FULL TOURNAMENT VIEW (ALL ROUNDS CONCATENATED)")
     print(f"{'='*120}\n")
     
+    # Columns that should not be prefixed with round number (static player info)
+    STATIC_COLUMNS = {"Player", "Skill"}
+    MISSING_VALUE = "-"
+    
     # Create a mapping of player ID to row index for each round
     # First, output headers for all rounds
     header_parts = []
     for i, round_data in enumerate(round_outputs, 1):
-        round_header = [f"R{i}_{col}" if col not in ["Player", "Skill"] else col 
+        round_header = [f"R{i}_{col}" if col not in STATIC_COLUMNS else col 
                        for col in round_data[0]]
         header_parts.append("\t".join(round_header))
     
@@ -293,8 +297,13 @@ def output_concatenated_tsv(round_outputs: List[List[List[str]]]) -> None:
             player_id = row[1]  # Player column
             all_players.add(player_id)
     
+    # Sort player IDs numerically by extracting the number
+    def player_sort_key(player_id: str) -> int:
+        """Extract numeric part from player ID (e.g., 'P12' -> 12)"""
+        return int(player_id[1:])
+    
     # For each player, concatenate their rows across all rounds
-    for player_id in sorted(all_players):
+    for player_id in sorted(all_players, key=player_sort_key):
         row_parts = []
         for round_data in round_outputs:
             # Find this player's row in this round
@@ -308,7 +317,7 @@ def output_concatenated_tsv(round_outputs: List[List[List[str]]]) -> None:
                 row_parts.append("\t".join(player_row))
             else:
                 # Should not happen, but handle gracefully
-                row_parts.append("\t".join(["-"] * len(round_data[0])))
+                row_parts.append("\t".join([MISSING_VALUE] * len(round_data[0])))
         
         print("\t".join(row_parts))
 
